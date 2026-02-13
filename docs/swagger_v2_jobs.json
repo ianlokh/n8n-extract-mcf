@@ -1,0 +1,1732 @@
+{
+  "swagger": "2.0",
+  "info": {
+    "version": "2.0.0",
+    "title": "MyCareersFuture API"
+  },
+  "host": "api.mycareersfuture.gov.sg",
+  "basePath": "/v2",
+  "schemes": [
+    "https"
+  ],
+  "consumes": [
+    "application/json"
+  ],
+  "produces": [
+    "application/json; charset=utf-8"
+  ],
+  "definitions": {
+    "PagedJobs": {
+      "type": "object",
+      "properties": {
+        "results": {
+          "items": {
+            "$ref": "#/definitions/Job"
+          }
+        },
+        "total": {
+          "type": "integer",
+          "example": 5
+        },
+        "countWithoutFilters": {
+          "type": "integer",
+          "example": 5
+        },
+        "_links": {
+          "$ref": "#/definitions/PagedLinks"
+        },
+        "searchRankingId": {
+          "type": "string",
+          "example": "1cfc9d91-5402-45c5-a3f7-39c55b53ca74-1634534489.4013765"
+        }
+      },
+      "required": [
+        "countWithoutFilters",
+        "results",
+        "total"
+      ]
+    },
+    "Job": {
+      "type": "object",
+      "properties": {
+        "uuid": {
+          "type": "string",
+          "description": "Unique identifier of the job title",
+          "example": "4a97f1f46801650775e95d8e9688b61d"
+        },
+        "sourceCode": {
+          "type": "string",
+          "description": "Job source code",
+          "example": "Employer Portal"
+        },
+        "title": {
+          "type": "string",
+          "description": "Job title"
+        },
+        "description": {
+          "type": "string",
+          "description": "Description of this job (html format)"
+        },
+        "minimumYearsExperience": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "description": "Minimum year of experience"
+        },
+        "otherRequirements": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Other requirement of this job (html format)"
+        },
+        "ssocCode": {
+          "type": [
+            "integer",
+            "string"
+          ],
+          "description": "SSOC Code, Based on the feature flag USE_STRING_SSOC_CODE_IN_API allows string or integer type",
+          "example": "3958"
+        },
+        "ssecEqa": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Education Qualification Code",
+          "example": "92"
+        },
+        "ssecFos": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Education Field of Study Code",
+          "example": "0521"
+        },
+        "workingHours": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Working hours"
+        },
+        "numberOfVacancies": {
+          "type": "integer",
+          "description": "A number of job vacancy",
+          "example": 1
+        },
+        "psdUrl": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "shiftPattern": {
+          "$ref": "#/definitions/ShiftPattern"
+        },
+        "categories": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Category"
+          }
+        },
+        "employmentTypes": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/EmploymentType"
+          }
+        },
+        "flexibleWorkArrangements": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/FlexibleWorkArrangement"
+          }
+        },
+        "positionLevels": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/PositionLevel"
+          }
+        },
+        "skills": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Skill"
+          }
+        },
+        "schemes": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/JobScheme"
+          }
+        },
+        "status": {
+          "$ref": "#/definitions/JobStatus"
+        },
+        "postedCompany": {
+          "$ref": "#/definitions/Company"
+        },
+        "hiringCompany": {
+          "$ref": "#/definitions/Company"
+        },
+        "address": {
+          "$ref": "#/definitions/JobAddress"
+        },
+        "metadata": {
+          "$ref": "#/definitions/JobMetadata"
+        },
+        "salary": {
+          "$ref": "#/definitions/JobSalary"
+        },
+        "jobTitles": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/JobTitle"
+          }
+        },
+        "screeningQuestions": {
+          "$ref": "#/definitions/JobScreeningQuestions"
+        }
+      },
+      "required": [
+        "uuid",
+        "sourceCode",
+        "title",
+        "description",
+        "ssocCode",
+        "numberOfVacancies",
+        "categories",
+        "employmentTypes",
+        "positionLevels",
+        "status",
+        "postedCompany",
+        "skills",
+        "metadata"
+      ]
+    },
+    "PagedLinks": {
+      "type": "object",
+      "properties": {
+        "self": {
+          "allOf": [
+            {
+              "$ref": "#/definitions/Link"
+            },
+            {
+              "description": "A hyperlink to this page of the collection"
+            },
+            {
+              "example": {
+                "href": "https://mycareersfuture.sg/v2/endpoint?name=sin&page=2"
+              }
+            }
+          ]
+        },
+        "first": {
+          "allOf": [
+            {
+              "$ref": "#/definitions/Link"
+            },
+            {
+              "description": "A hyperlink to the first page in this collection"
+            },
+            {
+              "example": {
+                "href": "https://mycareersfuture.sg/v2/endpoint?name=sin"
+              }
+            }
+          ]
+        },
+        "prev": {
+          "allOf": [
+            {
+              "$ref": "#/definitions/Link"
+            },
+            {
+              "description": "A hyperlink to the previous page in this collection"
+            },
+            {
+              "example": {
+                "href": "https://mycareersfuture.sg/v2/endpoint?name=sin&page=1"
+              }
+            }
+          ]
+        },
+        "next": {
+          "allOf": [
+            {
+              "$ref": "#/definitions/Link"
+            },
+            {
+              "description": "A hyperlink to the next page in this collection"
+            },
+            {
+              "example": {
+                "href": "https://mycareersfuture.sg/v2/endpoint?name=sin&page=3"
+              }
+            }
+          ]
+        },
+        "last": {
+          "allOf": [
+            {
+              "$ref": "#/definitions/Link"
+            },
+            {
+              "description": "A hyperlink to the last page in this collection"
+            },
+            {
+              "example": {
+                "href": "https://mycareersfuture.sg/v2/endpoint?name=sin&page=146"
+              }
+            }
+          ]
+        }
+      },
+      "required": [
+        "self",
+        "first",
+        "last"
+      ]
+    },
+    "ShiftPattern": {
+      "x-nullable": true,
+      "type": "object",
+      "properties": {
+        "id": {
+          "$ref": "#/definitions/ShiftPatternId"
+        },
+        "shiftPattern": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Description of the shift pattern",
+          "example": "CPSD"
+        }
+      },
+      "required": [
+        "id",
+        "shiftPattern"
+      ]
+    },
+    "Category": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "$ref": "#/definitions/CategoryId"
+        },
+        "category": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Description of the category",
+          "example": "Customer Service"
+        }
+      },
+      "required": [
+        "id",
+        "category"
+      ]
+    },
+    "EmploymentType": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "$ref": "#/definitions/EmploymentTypeId"
+        },
+        "employmentType": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Description of the employment type",
+          "example": "Part-Time"
+        }
+      },
+      "required": [
+        "id",
+        "employmentType"
+      ]
+    },
+    "FlexibleWorkArrangementId": {
+      "type": [
+        "integer",
+        "null"
+      ],
+      "description": "Unique identifier of the Flexible Work Arrangement",
+      "example": 6
+    },
+    "FlexibleWorkArrangement": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "$ref": "#/definitions/FlexibleWorkArrangementId"
+        },
+        "flexibleWorkArrangement": {
+          "type": "string",
+          "description": "Description of Flexible Work Arrangement",
+          "example": "Telecommuting"
+        }
+      },
+      "required": [
+        "id",
+        "flexibleWorkArrangement"
+      ]
+    },
+    "PositionLevelId": {
+      "type": [
+        "integer",
+        "null"
+      ],
+      "description": "Unique identifier of the position level",
+      "example": 8
+    },
+    "PositionLevel": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "$ref": "#/definitions/PositionLevelId"
+        },
+        "position": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Description of the position level",
+          "example": "Senior Executive"
+        }
+      },
+      "required": [
+        "id",
+        "position"
+      ]
+    },
+    "SkillId": {
+      "type": "integer",
+      "description": "Unique identifier of the skill",
+      "example": 10
+    },
+    "SkillUuid": {
+      "type": "string",
+      "description": "uuid of the skill",
+      "example": "a7f5f35426b927411fc9231b56382173"
+    },
+    "SkillSingleResourceLinks": {
+      "type": "object",
+      "properties": {
+        "self": {
+          "allOf": [
+            {
+              "$ref": "#/definitions/Link"
+            },
+            {
+              "description": "A hyperlink to this resource"
+            },
+            {
+              "example": {
+                "href": "https://mycareersfuture.sg/v2/skills/10"
+              }
+            }
+          ]
+        },
+        "jobs": {
+          "allOf": [
+            {
+              "$ref": "#/definitions/Link"
+            },
+            {
+              "description": "A hyperlink to this resource"
+            },
+            {
+              "example": {
+                "href": "https://mycareersfuture.sg/v2/skills/5/jobs"
+              }
+            }
+          ]
+        }
+      },
+      "required": [
+        "self",
+        "jobs"
+      ]
+    },
+    "SchemeSingleResourceLinks": {
+      "type": "object",
+      "properties": {
+        "self": {
+          "allOf": [
+            {
+              "$ref": "#/definitions/Link"
+            },
+            {
+              "description": "A hyperlink to this resource"
+            },
+            {
+              "example": {
+                "href": "https://mycareersfuture.sg/v2/schemes/2"
+              }
+            }
+          ]
+        },
+        "subSchemes": {
+          "allOf": [
+            {
+              "$ref": "#/definitions/Link"
+            },
+            {
+              "description": "A hyperlink to this resource"
+            },
+            {
+              "example": {
+                "href": "https://mycareersfuture.sg/v2/schemes/2/subSchemes"
+              }
+            }
+          ]
+        }
+      },
+      "required": [
+        "self",
+        "subSchemes"
+      ]
+    },
+    "Skill": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "$ref": "#/definitions/SkillId"
+        },
+        "uuid": {
+          "$ref": "#/definitions/SkillUuid"
+        },
+        "skill": {
+          "type": "string",
+          "description": "Name of the skill",
+          "example": "Python"
+        },
+        "_links": {
+          "$ref": "#/definitions/SkillSingleResourceLinks"
+        }
+      },
+      "required": [
+        "uuid",
+        "skill"
+      ]
+    },
+    "SchemeId": {
+      "type": [
+        "integer"
+      ],
+      "description": "Unique identifier of the Scheme",
+      "example": 2
+    },
+    "Scheme": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "$ref": "#/definitions/SchemeId"
+        },
+        "scheme": {
+          "type": [
+            "string"
+          ],
+          "description": "Description of the Scheme",
+          "example": "CSP"
+        },
+        "startDate": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "The start date for validity of the scheme",
+          "example": "2018-07-30"
+        },
+        "expiryDate": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "The end date for validity of the scheme",
+          "example": "2019-07-30"
+        },
+        "_links": {
+          "$ref": "#/definitions/SchemeSingleResourceLinks"
+        }
+      },
+      "required": [
+        "id",
+        "scheme"
+      ]
+    },
+    "SubSchemeId": {
+      "type": [
+        "integer",
+        "null"
+      ],
+      "description": "Unique identifier of the SubScheme",
+      "example": 188
+    },
+    "SubSchemeSingleResourceLinks": {
+      "type": "object",
+      "properties": {
+        "self": {
+          "allOf": [
+            {
+              "$ref": "#/definitions/Link"
+            },
+            {
+              "description": "A hyperlink to this resource"
+            },
+            {
+              "example": {
+                "href": "https://mycareersfuture.sg/v2/schemes/2/subSchemes/60"
+              }
+            }
+          ]
+        }
+      },
+      "required": [
+        "self"
+      ]
+    },
+    "SubScheme": {
+      "type": "object",
+      "x-nullable": true,
+      "properties": {
+        "id": {
+          "$ref": "#/definitions/SubSchemeId"
+        },
+        "schemeId": {
+          "$ref": "#/definitions/SchemeId"
+        },
+        "programme": {
+          "type": [
+            "string"
+          ],
+          "description": "Description of the Sub Scheme",
+          "example": "CCP for Travel Executives"
+        },
+        "startDate": {
+          "type": [
+            "string"
+          ],
+          "description": "The start date for validity of the scheme",
+          "example": "2018-07-30"
+        },
+        "expiryDate": {
+          "type": [
+            "string"
+          ],
+          "description": "The end date for validity of the scheme",
+          "example": "2019-07-30"
+        },
+        "_links": {
+          "$ref": "#/definitions/SubSchemeSingleResourceLinks"
+        }
+      },
+      "required": [
+        "id",
+        "schemeId",
+        "programme"
+      ]
+    },
+    "JobScheme": {
+      "type": "object",
+      "properties": {
+        "scheme": {
+          "$ref": "#/definitions/Scheme"
+        },
+        "subScheme": {
+          "$ref": "#/definitions/SubScheme"
+        }
+      }
+    },
+    "JobStatusId": {
+      "type": "integer",
+      "description": "Unique identifier of the job status",
+      "example": 102
+    },
+    "JobStatus": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "$ref": "#/definitions/JobStatusId"
+        },
+        "jobStatus": {
+          "type": "string",
+          "description": "Description of the job status",
+          "example": "Open"
+        }
+      },
+      "required": [
+        "id",
+        "jobStatus"
+      ]
+    },
+    "CompanyUen": {
+      "type": "string",
+      "description": "Unique Entity Number",
+      "example": "199804247N"
+    },
+    "CompanyBadge": {
+      "type": "object",
+      "properties": {
+        "badgeCode": {
+          "type": "string",
+          "description": "Badge code of Company Badge",
+          "example": "001"
+        },
+        "badgeType": {
+          "type": "string",
+          "description": "Type of Company Badge",
+          "example": "Tripartite"
+        },
+        "startDate": {
+          "type": "string",
+          "description": "Start date of this badge",
+          "example": "2017-10-23T00:00:00.000Z"
+        },
+        "expiryDate": {
+          "type": "string",
+          "description": "Expiry date of this badge",
+          "example": "2017-10-23T00:00:00.000Z"
+        },
+        "badgeName": {
+          "type": "string",
+          "description": "Name of this badge",
+          "example": "Tripartite Standard on Employment of Term Contract Employees"
+        },
+        "description": {
+          "type": "string",
+          "description": "Description of this badge",
+          "example": "Managing term contract staff fairly, and providing appropriate benefits."
+        },
+        "url": {
+          "type": "string",
+          "description": "URL of this badge",
+          "example": "https://www.tafep.sg/employment-term-contract-employees"
+        }
+      },
+      "required": [
+        "badgeCode",
+        "badgeType",
+        "badgeName",
+        "startDate",
+        "expiryDate"
+      ]
+    },
+    "CompanyAddress": {
+      "type": "object",
+      "properties": {
+        "postalCode": {
+          "type": "string",
+          "example": "140112"
+        },
+        "block": {
+          "type": "string",
+          "example": "9"
+        },
+        "street": {
+          "type": "string",
+          "example": "Some Street"
+        },
+        "building": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "example": "Some Building"
+        },
+        "floor": {
+          "type": [
+            "string"
+          ],
+          "example": "2"
+        },
+        "unit": {
+          "type": [
+            "string"
+          ],
+          "example": "9"
+        },
+        "purpose": {
+          "type": "string",
+          "description": "Type of address. Possible values:\n  - `registered`: official registered address of Entity\n  - `operating`: operating address of Entity; i.e. where the entity operates their business.\n  - `correspondence`: correspondence address of Entity\n",
+          "enum": [
+            "registered",
+            "operating",
+            "correspondence"
+          ],
+          "example": "operating"
+        }
+      },
+      "required": [
+        "postalCode",
+        "block",
+        "street",
+        "purpose"
+      ]
+    },
+    "CompanySingleResourceLinks": {
+      "type": "object",
+      "properties": {
+        "self": {
+          "allOf": [
+            {
+              "$ref": "#/definitions/Link"
+            },
+            {
+              "description": "A hyperlink to this resource"
+            },
+            {
+              "example": {
+                "href": "https://mycareersfuture.sg/v2/companies/T08GB0046G"
+              }
+            }
+          ]
+        },
+        "jobs": {
+          "allOf": [
+            {
+              "$ref": "#/definitions/Link"
+            },
+            {
+              "description": "A hyperlink to this resource"
+            },
+            {
+              "example": {
+                "href": "https://mycareersfuture.sg/v2/companies/T08GB0046G/jobs"
+              }
+            }
+          ]
+        },
+        "addresses": {
+          "allOf": [
+            {
+              "$ref": "#/definitions/Link"
+            },
+            {
+              "description": "A hyperlink to this resource"
+            },
+            {
+              "example": {
+                "href": "https://mycareersfuture.sg/v2/companies/T08GB0046G/addresses"
+              }
+            }
+          ]
+        },
+        "schemes": {
+          "allOf": [
+            {
+              "$ref": "#/definitions/Link"
+            },
+            {
+              "description": "A hyperlink to this resource"
+            },
+            {
+              "example": {
+                "href": "https://mycareersfuture.sg/v2/companies/T08GB0046G/schemes"
+              }
+            }
+          ]
+        }
+      },
+      "required": [
+        "self"
+      ]
+    },
+    "CompanyResponsive": {
+      "type": "object",
+      "properties": {
+        "uen": {
+          "type": "string",
+          "description": "Company Uen",
+          "example": "T08GB0064C"
+        },
+        "responsiveCreatedOn": {
+          "type": "string",
+          "description": "Created datetime of this record in company_responsive",
+          "example": "2017-10-23T00:00:00.000Z"
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "Updated datetime of this record in company_responsive",
+          "example": "2017-10-23T00:00:00.000Z"
+        }
+      }
+    },
+    "Company": {
+      "x-nullable": true,
+      "type": "object",
+      "properties": {
+        "uen": {
+          "$ref": "#/definitions/CompanyUen"
+        },
+        "description": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Description of the company that is lodged in their company profile, may include HTML elements",
+          "example": "\u003Cp\u003E\r\n\tThe Government Technology Agency (GovTech) aims to transform the delivery of Government digital services by taking an &quot;outside-in&quot; view, putting citizens and businesses at the heart of everything we do. We also develop the Smart Nation infrastructure and applications, and facilitate collaboration with citizens and businesses to co-develop technologies.\u003C/p\u003E\r\n"
+        },
+        "logoFileName": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Filename of the logo",
+          "example": "08209124502e424116f3408cd1c5528c.jpg"
+        },
+        "logoUploadPath": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "An internet accessible URI to retrieve the company's logo",
+          "example": "https://s3-ap-southeast-1.amazonaws.com/ojmp-data/08209124502e424116f3408cd1c5528c.jpg"
+        },
+        "name": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Registered entity name",
+          "example": "Government Technology Agency"
+        },
+        "ssicCode": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Singapore Standard Industrial Classification of the company obtained from MSF",
+          "example": "28181"
+        },
+        "ssicCode2020": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Singapore Standard Industrial Classification of the company obtained from EDH",
+          "example": "28181"
+        },
+        "badges": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/CompanyBadge"
+          }
+        },
+        "addresses": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/CompanyAddress"
+          }
+        },
+        "_links": {
+          "$ref": "#/definitions/CompanySingleResourceLinks"
+        },
+        "responsiveEmployer": {
+          "$ref": "#/definitions/CompanyResponsive"
+        }
+      },
+      "required": [
+        "uen",
+        "description",
+        "logoFileName",
+        "logoUploadPath",
+        "name",
+        "ssicCode",
+        "ssicCode2020",
+        "_links"
+      ]
+    },
+    "District": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "integer",
+          "description": "Unique identifier of the district",
+          "example": 13
+        },
+        "location": {
+          "type": "string",
+          "description": "Description of the district",
+          "example": "D13 Macpherson, Braddell"
+        },
+        "region": {
+          "type": "string",
+          "description": "Description of the district region",
+          "example": "Central"
+        },
+        "sectors": {
+          "type": "array",
+          "description": "Postal code sector of the district",
+          "items": {
+            "type": "string"
+          },
+          "example": [
+            "34",
+            "35",
+            "36",
+            "37"
+          ]
+        }
+      },
+      "required": [
+        "id",
+        "location",
+        "region",
+        "sectors"
+      ]
+    },
+    "JobAddress": {
+      "x-nullable": true,
+      "type": "object",
+      "properties": {
+        "districts": {
+          "items": {
+            "$ref": "#/definitions/District"
+          },
+          "type": "array"
+        },
+        "overseasCountry": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Job overseas country",
+          "example": "France"
+        },
+        "foreignAddress1": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Job overseas address 1",
+          "example": "Lincoln street"
+        },
+        "foreignAddress2": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Job overseas address 2"
+        },
+        "block": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Address block",
+          "example": "46"
+        },
+        "street": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Address street",
+          "example": "Stars Avenue"
+        },
+        "floor": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Address floor",
+          "example": "22"
+        },
+        "unit": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Address unit",
+          "example": "35"
+        },
+        "building": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Address building",
+          "example": "Sandcrawler"
+        },
+        "postalCode": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Address postalCode",
+          "example": "138577"
+        },
+        "isOverseas": {
+          "type": "boolean",
+          "description": "Indicates if an address is a foreign address"
+        }
+      }
+    },
+    "JobMetadataInput": {
+      "type": "object",
+      "properties": {
+        "isHideSalary": {
+          "type": "boolean",
+          "description": "Hide salary information boolean"
+        },
+        "isHideCompanyAddress": {
+          "type": "boolean",
+          "description": "Hide company address boolean"
+        },
+        "isHideHiringEmployerName": {
+          "type": "boolean",
+          "description": "Hide hiring employer name boolean"
+        },
+        "isHideEmployerName": {
+          "type": "boolean",
+          "description": "Hide employer name boolean"
+        }
+      }
+    },
+    "JobMetadata": {
+      "allOf": [
+        {
+          "$ref": "#/definitions/JobMetadataInput"
+        },
+        {
+          "type": "object",
+          "properties": {
+            "jobPostId": {
+              "type": "string",
+              "description": "Identifier of the job in jobs bank",
+              "example": "JOB-2017-0163487"
+            },
+            "deletedAt": {
+              "type": "string",
+              "x-nullable": true,
+              "description": "deleted date of this job",
+              "example": "2017-10-23T00:00:00.000Z"
+            },
+            "createdBy": {
+              "type": "string",
+              "description": "creator's individualId"
+            },
+            "createdAt": {
+              "type": "string",
+              "description": "Created datetime of this job",
+              "example": "2017-10-23T00:00:00.000Z"
+            },
+            "updatedAt": {
+              "type": "string",
+              "description": "Updated datetime of this job",
+              "example": "2017-10-23T00:00:00.000Z"
+            },
+            "totalNumberOfView": {
+              "type": "integer",
+              "description": "Total number of view",
+              "example": 1234
+            },
+            "newPostingDate": {
+              "type": "string",
+              "description": "Job posting date",
+              "example": "2018-01-25T00:00:00.000Z"
+            },
+            "originalPostingDate": {
+              "type": "string",
+              "description": "Job original posting date",
+              "example": "2018-01-25T00:00:00.000Z"
+            },
+            "totalNumberJobApplication": {
+              "type": "integer",
+              "description": "Total number of job application",
+              "example": 9876
+            },
+            "jobDetailsUrl": {
+              "type": "string",
+              "description": "Job Details URL",
+              "example": "https://www.mycareersfuture.sg/job/bb4922ce579b443f906914f0fed6ea13"
+            },
+            "matchedSkillsScore": {
+              "type": "number",
+              "x-nullable": true,
+              "description": "Job Skills to Jobseeker Skills matching score",
+              "example": 0.05
+            },
+            "editCount": {
+              "type": "integer",
+              "description": "A number of edit count for this job",
+              "example": 1
+            },
+            "repostCount": {
+              "type": "integer",
+              "description": "A number of repost count for this job",
+              "example": 1
+            }
+          },
+          "required": [
+            "jobPostId",
+            "createdBy",
+            "createdAt",
+            "updatedAt",
+            "totalNumberOfView",
+            "newPostingDate",
+            "originalPostingDate",
+            "totalNumberJobApplication",
+            "jobDetailsUrl"
+          ]
+        }
+      ]
+    },
+    "JobSalaryTypeId": {
+      "type": [
+        "integer",
+        "null"
+      ],
+      "description": "Unique identifier of the salary type",
+      "example": 4
+    },
+    "JobSalaryType": {
+      "x-nullable": true,
+      "type": "object",
+      "properties": {
+        "id": {
+          "$ref": "#/definitions/JobSalaryTypeId"
+        },
+        "salaryType": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Description of the salary type",
+          "example": "Monthly"
+        }
+      },
+      "required": [
+        "id",
+        "salaryType"
+      ]
+    },
+    "JobSalary": {
+      "type": "object",
+      "x-nullable": true,
+      "properties": {
+        "maximum": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "description": "Maximum salary to expect",
+          "example": 5000
+        },
+        "minimum": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "description": "Minimum salary to expect",
+          "example": 1000
+        },
+        "type": {
+          "$ref": "#/definitions/JobSalaryType"
+        }
+      },
+      "required": [
+        "minimum",
+        "maximum",
+        "type"
+      ]
+    },
+    "JobTitleSingleResourceLinks": {
+      "type": "object",
+      "properties": {
+        "self": {
+          "allOf": [
+            {
+              "$ref": "#/definitions/Link"
+            },
+            {
+              "description": "A hyperlink to this resource"
+            },
+            {
+              "example": {
+                "href": "https://mycareersfuture.sg/v2/job-titles/200"
+              }
+            }
+          ]
+        }
+      },
+      "required": [
+        "self"
+      ]
+    },
+    "JobTitle": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "integer",
+          "description": "Unique identifier of the job title",
+          "example": 100
+        },
+        "jobTitle": {
+          "type": "string",
+          "description": "Title of the job",
+          "example": "Project Manager - Customer Delivery (FinTech Industry)"
+        },
+        "_links": {
+          "$ref": "#/definitions/JobTitleSingleResourceLinks"
+        }
+      },
+      "required": [
+        "id",
+        "jobTitle",
+        "_links"
+      ]
+    },
+    "JobScreeningQuestion": {
+      "type": "object",
+      "properties": {
+        "question": {
+          "type": "string",
+          "description": "Job screening question",
+          "example": "Are you able to workshift?"
+        }
+      },
+      "required": [
+        "question"
+      ]
+    },
+    "JobScreeningQuestions": {
+      "type": "array",
+      "maxItems": 3,
+      "items": {
+        "$ref": "#/definitions/JobScreeningQuestion"
+      },
+      "example": [
+        {
+          "question": "Are you able to workshift?"
+        }
+      ]
+    },
+    "Link": {
+      "type": "object",
+      "properties": {
+        "href": {
+          "type": "string",
+          "description": "A hyperlink"
+        }
+      },
+      "required": [
+        "href"
+      ]
+    },
+    "ShiftPatternId": {
+      "type": [
+        "integer",
+        "null"
+      ],
+      "description": "Unique identifier of the shift pattern",
+      "example": 31
+    },
+    "CategoryId": {
+      "type": [
+        "integer",
+        "null"
+      ],
+      "description": "Unique identifier of the category",
+      "example": 8
+    },
+    "EmploymentTypeId": {
+      "type": [
+        "integer",
+        "null"
+      ],
+      "description": "Unique identifier of the employment type",
+      "example": 5
+    }
+  },
+  "paths": {
+    "/jobs": {
+      "x-swagger-router-controller": "jobs",
+      "x-objectionjs-model": "SearchableJob",
+      "get": {
+        "x-additional-middleware": [
+          "ssocCodeTypeCheck"
+        ],
+        "tags": [
+          "jobs"
+        ],
+        "description": "Returns a list of jobs",
+        "operationId": "getJobs",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "uuids",
+            "description": "Array of unique identifier",
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "x-example": [
+              "639f3375479ba2246a3dff7506832060"
+            ]
+          },
+          {
+            "in": "query",
+            "name": "sessionId",
+            "type": "string",
+            "required": false,
+            "description": "Session ID of job seeker",
+            "x-example": "session123"
+          },
+          {
+            "in": "query",
+            "name": "guid",
+            "type": "string",
+            "required": false,
+            "x-example": "user123",
+            "description": "Unique identifier of job seeker (Individual ID)"
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "type": "integer",
+            "default": 20,
+            "minimum": 1,
+            "maximum": 100
+          },
+          {
+            "description": "Page number",
+            "in": "query",
+            "name": "page",
+            "required": false,
+            "type": "integer",
+            "default": 0,
+            "minimum": 0
+          },
+          {
+            "description": "Job Statuses",
+            "name": "jobStatuses",
+            "in": "query",
+            "required": false,
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "enum": [9, 83, 102, 103]
+            }
+          },
+          {
+            "description": "Order by",
+            "name": "orderBy",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "description": "Order direction",
+            "name": "orderDirection",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "description": "Search query",
+            "name": "search",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "description": "deprecated, use skillUuids in /search POST instead",
+            "name": "skillIds",
+            "in": "query",
+            "required": false,
+            "type": "array",
+            "collectionFormat": "csv",
+            "items": {
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Expected salary",
+            "name": "salary",
+            "in": "query",
+            "required": false,
+            "type": "integer",
+            "default": 0,
+            "minimum": 0
+          },
+          {
+            "description": "Company",
+            "name": "company",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "description": "Employment Types",
+            "name": "employmentTypes",
+            "in": "query",
+            "required": false,
+            "type": "array",
+            "collectionFormat": "multi",
+            "items": {
+              "type": "string",
+              "enum": [
+                "Permanent",
+                "Temporary",
+                "Contract",
+                "Freelance",
+                "Full Time",
+                "Flexi-work",
+                "Part Time",
+                "Internship/Attachment"
+              ]
+            }
+          },
+          {
+            "description": "Position levels",
+            "name": "positionLevels",
+            "in": "query",
+            "required": false,
+            "type": "array",
+            "collectionFormat": "multi",
+            "items": {
+              "type": "string",
+              "enum": [
+                "Senior Management",
+                "Middle Management",
+                "Manager",
+                "Fresh/entry level",
+                "Professional",
+                "Executive",
+                "Non-executive",
+                "Junior Executive",
+                "Senior Executive"
+              ]
+            }
+          },
+          {
+            "description": "flexible work arrangement ids",
+            "name": "flexibleWorkArrangements",
+            "in": "query",
+            "required": false,
+            "type": "array",
+            "collectionFormat": "multi",
+            "items": {
+              "type": "number",
+              "enum": [1, 2, 3, 4, 5, 6]
+            }
+          },
+          {
+            "description": "Districts",
+            "name": "districtIds",
+            "in": "query",
+            "required": false,
+            "type": "array",
+            "collectionFormat": "csv",
+            "items": {
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Categories",
+            "name": "categories",
+            "in": "query",
+            "required": false,
+            "type": "array",
+            "collectionFormat": "multi",
+            "items": {
+              "type": "string",
+              "enum": [
+                "Accounting / Auditing / Taxation",
+                "Admin / Secretarial",
+                "Advertising / Media",
+                "Architecture / Interior Design",
+                "Consulting",
+                "Risk Management",
+                "Banking and Finance",
+                "Building and Construction",
+                "Social Services",
+                "Customer Service",
+                "Design",
+                "Education and Training",
+                "Engineering",
+                "Entertainment",
+                "Environment / Health",
+                "Events / Promotions",
+                "F&B",
+                "General Work",
+                "Healthcare / Pharmaceutical",
+                "Hospitality",
+                "Human Resources",
+                "Information Technology",
+                "Insurance",
+                "Legal",
+                "Logistics / Supply Chain",
+                "General Management",
+                "Manufacturing",
+                "Marketing / Public Relations",
+                "Medical / Therapy Services",
+                "Others",
+                "Personal Care / Beauty",
+                "Professional Services",
+                "Public / Civil Service",
+                "Purchasing / Merchandising",
+                "Real Estate / Property Management",
+                "Repair and Maintenance",
+                "Sales / Retail",
+                "Sciences / Laboratory / R&D",
+                "Security and Investigation",
+                "Telecommunications",
+                "Travel / Tourism",
+                "Wholesale Trade",
+                "Precision Engineering"
+              ]
+            }
+          },
+          {
+            "description": "Posting company",
+            "name": "postingCompany",
+            "in": "query",
+            "required": false,
+            "type": "array",
+            "collectionFormat": "multi",
+            "items": {
+              "type": "string",
+              "enum": [
+                "Direct",
+                "Third Party"
+              ]
+            }
+          },
+          {
+            "description": "Govt Schemes",
+            "name": "schemes",
+            "in": "query",
+            "required": false,
+            "type": "boolean"
+          },
+          {
+            "description": "Geolocation latlng pair",
+            "name": "geolocation",
+            "in": "query",
+            "required": false,
+            "type": "array",
+            "collectionFormat": "csv",
+            "items": {
+              "type": "number"
+            }
+          },
+          {
+            "description": "Sort by",
+            "name": "sortBy",
+            "in": "query",
+            "required": false,
+            "type": "array",
+            "collectionFormat": "multi",
+            "items": {
+              "type": "string",
+              "enum": [
+                "new_posting_date",
+                "min_monthly_salary",
+                "normalised_job_title",
+                "exact_employer_name",
+                "exact_uuid"
+              ]
+            }
+          },
+          {
+            "description": "scheme Ids",
+            "name": "schemeIds",
+            "in": "query",
+            "type": "array",
+            "required": false,
+            "collectionFormat": "csv",
+            "items": {
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Blacklisted term",
+            "name": "blacklistTerm",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "description": "Company UEN",
+            "name": "uen",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "description": "Hiring UEN",
+            "name": "hiringUen",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "description": "Whether the number from count without filters is omitted (defaults to false if empty)",
+            "name": "omitCountWithoutFilters",
+            "in": "query",
+            "required": false,
+            "type": "boolean"
+          },
+          {
+            "in": "query",
+            "name": "updatedAtEqualOrBefore",
+            "type": "string",
+            "required": false,
+            "description": "Applications that are updated before updatedAtEqualOrBefore datetime",
+            "x-example": "2100-10-23T00:00:00.00+08:00"
+          },
+          {
+            "in": "query",
+            "name": "updatedAtEqualOrAfter",
+            "type": "string",
+            "required": false,
+            "description": "Applications that are updated after updatedAtEqualOrAfter datetime",
+            "x-example": "2017-10-23T00:00:00.00+08:00"
+          },
+          {
+            "in": "query",
+            "name": "modifiedOnly",
+            "description": "Filter job posts that have been updated after posting/reposting",
+            "type": "boolean",
+            "required": false,
+            "x-example": false
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "headers": {
+              "Content-Type": {
+                "type": "string",
+                "default": "application/json; charset=utf-8"
+              }
+            },
+            "description": "List of Jobs",
+            "schema": {
+              "$ref": "#/definitions/PagedJobs"
+            }
+          }
+        }
+      },
+      "parameters": []
+    }
+  },
+  "x-express-openapi-additional-middleware": [null, null],
+  "tags": [
+    {
+      "name": "jobs"
+    }
+  ]
+}
