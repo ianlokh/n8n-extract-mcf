@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(//Users/ianlo/**)",
+      "Bash(python3 -c ' *)",
+      "Bash(xargs -I{} sh -c 'echo \"--{}--\"; cat {}')",
+      "Bash(cp /Users/ianlo/.claude.json /private/tmp/claude-501/-Users-ianlo-Desktop-Learning-Fest-Demo-n8n-extract-mcf/d7bd58bf-c0d9-4a25-8f97-9c96abd856dc/scratchpad/claude.json.bak)",
+      "Bash(cp ~/.claude/plugins/installed_plugins.json /private/tmp/claude-501/-Users-ianlo-Desktop-Learning-Fest-Demo-n8n-extract-mcf/d7bd58bf-c0d9-4a25-8f97-9c96abd856dc/scratchpad/installed_plugins.json.bak)",
+      "mcp__n8n-mcp-gc__get_sdk_reference",
+      "mcp__n8n-mcp__get_workflow_details",
+      "mcp__n8n-mcp__get_node_types"
+    ]
+  }
+}

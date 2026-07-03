@@ -1,6 +1,6 @@
 // Extract UUIDs from job URLs and build MCF API URLs per email
 // Each item = one email with its job URLs (batched by emailId)
-// Swagger: GET /v2/jobs?uuids=uuid1&uuids=uuid2&limit=100
+// Swagger: GET /v2/jobs?uuids=uuid1&uuids=uuid2
 return items
   .map(item => {
     const urls = item.json.urls || [];
@@ -17,7 +17,7 @@ return items
 
     // Build MCF API URL with repeated uuids params per swagger spec
     const queryParams = uuids.map(uuid => `uuids=${uuid}`).join('&');
-    const apiUrl = `https://api.mycareersfuture.gov.sg/v2/jobs?${queryParams}&limit=100`;
+    const apiUrl = `https://api.mycareersfuture.gov.sg/v2/jobs?${queryParams}`;
 
     return {
       json: {

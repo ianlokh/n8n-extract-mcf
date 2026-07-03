@@ -1,12 +1,18 @@
 // Each incoming item = one email
 return items.map(item => {
-  const text = item.json.text || item.json.html || "";
+  const text = item.json.text || "";
+  const html = item.json.html || "";
 
-  // Match full encoded URLs under mycareersfuture.gov.sg
-  const regex = /https:%2F%2Fwww\.mycareersfuture\.gov\.sg%2F[^\s"'<>]*/gi;
-  const encodedMatches = text.match(regex) || [];
+  // Plain-text body has unencoded URLs; HTML body wraps links behind a
+  // click-tracking redirect, embedding the real URL percent-encoded
+  // (e.g. https://xxx.awstrack.me/L0/https:%2F%2Fwww.mycareersfuture.gov.sg%2F...)
+  const plainRegex = /https:\/\/www\.mycareersfuture\.gov\.sg\/[^\s"'<>]*/gi;
+  const encodedRegex = /https:%2F%2Fwww\.mycareersfuture\.gov\.sg%2F[^\s"'<>]*/gi;
 
-  const decoded = encodedMatches.map(m => decodeURIComponent(m));
+  const plainMatches = text.match(plainRegex) || [];
+  const encodedMatches = (html.match(encodedRegex) || []).map(m => decodeURIComponent(m));
+
+  const decoded = [...plainMatches, ...encodedMatches];
 
   // Keep only /job..., exclude /jobalert...
   const jobUrls = decoded.filter(url =>

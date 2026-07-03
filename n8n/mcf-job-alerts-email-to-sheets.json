@@ -1,25 +1,22 @@
 {
   "id": "O7qcFvuyhv1qJpMr",
   "name": "MCF Job Alerts - Email to Google Sheets",
-  "active": false,
+  "active": true,
   "nodes": [
     {
+      "parameters": {},
       "id": "node-trigger",
       "name": "When clicking 'Test workflow'",
       "type": "n8n-nodes-base.manualTrigger",
       "typeVersion": 1,
-      "position": [0, 192],
-      "parameters": {}
+      "position": [
+        0,
+        96
+      ]
     },
     {
-      "id": "node-create-sheet",
-      "name": "Create MCF Job Data Sheet",
-      "type": "n8n-nodes-base.googleSheets",
-      "typeVersion": 4.7,
-      "position": [224, 192],
       "parameters": {
         "resource": "spreadsheet",
-        "operation": "create",
         "title": "MCF Job Data",
         "sheetsUi": {
           "sheetValues": [
@@ -30,70 +27,76 @@
         },
         "options": {}
       },
-      "credentials": {
-        "googleSheetsOAuth2Api": {
-          "id": "uBda0hDvnDBh6LU0",
-          "name": "Google Sheets OAuth"
-        }
-      }
+      "id": "node-create-sheet",
+      "name": "Create MCF Job Data Sheet",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        672,
+        288
+      ]
     },
     {
-      "id": "node-gmail",
-      "name": "Get MCF Alert Emails",
-      "type": "n8n-nodes-base.gmail",
-      "typeVersion": 2.2,
-      "position": [448, 192],
       "parameters": {
         "operation": "getAll",
+        "returnAll": true,
         "simple": false,
         "filters": {
+          "q": "-label:\"MCF Processed\"",
           "sender": "job-alerts@mycareersfuture.gov.sg"
         },
         "options": {}
       },
-      "credentials": {
-        "gmailOAuth2": {
-          "id": "O7pnZAPuEsmPCS91",
-          "name": "Gmail OAuth"
-        }
-      }
+      "id": "node-gmail",
+      "name": "Get MCF Alert Emails",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        896,
+        208
+      ],
+      "webhookId": "079a345f-4008-4411-a25e-1d72706c0965"
     },
     {
+      "parameters": {
+        "jsCode": "// Each incoming item = one email\nreturn items.map(item => {\n  const text = item.json.text || \"\";\n  const html = item.json.html || \"\";\n\n  // Plain-text body has unencoded URLs; HTML body wraps links behind a\n  // click-tracking redirect, embedding the real URL percent-encoded\n  // (e.g. https://xxx.awstrack.me/L0/https:%2F%2Fwww.mycareersfuture.gov.sg%2F...)\n  const plainRegex = /https:\\/\\/www\\.mycareersfuture\\.gov\\.sg\\/[^\\s\"'<>]*/gi;\n  const encodedRegex = /https:%2F%2Fwww\\.mycareersfuture\\.gov\\.sg%2F[^\\s\"'<>]*/gi;\n\n  const plainMatches = text.match(plainRegex) || [];\n  const encodedMatches = (html.match(encodedRegex) || []).map(m => decodeURIComponent(m));\n\n  const decoded = [...plainMatches, ...encodedMatches];\n\n  // Keep only /job..., exclude /jobalert...\n  const jobUrls = decoded.filter(url =>\n    url.startsWith(\"https://www.mycareersfuture.gov.sg/job\") &&\n    !url.startsWith(\"https://www.mycareersfuture.gov.sg/jobalert\")\n  );\n\n  // Trim everything after the first \"?\"\n  const trimmedJobUrls = jobUrls.map(url => {\n    const qIndex = url.indexOf(\"?\");\n    return qIndex === -1 ? url : url.slice(0, qIndex);\n  });\n\n  // De-duplicate after trimming\n  const uniqueJobUrls = Array.from(new Set(trimmedJobUrls));\n\n  const emailId = item.json.id || item.json.messageId || null;\n\n  return {\n    json: {\n      emailId,\n      urls: uniqueJobUrls\n    }\n  };\n});\n"
+      },
       "id": "node-extract-uuids",
       "name": "Extract Job UUIDs",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [672, 192],
-      "parameters": {
-        "jsCode": "// Each incoming item = one email\nreturn items.map(item => {\n  const text = item.json.text || item.json.html || \"\";\n\n  // Match full encoded URLs under mycareersfuture.gov.sg\n  const regex = /https:%2F%2Fwww\\.mycareersfuture\\.gov\\.sg%2F[^\\s\"'<>]*/gi;\n  const encodedMatches = text.match(regex) || [];\n\n  const decoded = encodedMatches.map(m => decodeURIComponent(m));\n\n  // Keep only /job..., exclude /jobalert...\n  const jobUrls = decoded.filter(url =>\n    url.startsWith(\"https://www.mycareersfuture.gov.sg/job\") &&\n    !url.startsWith(\"https://www.mycareersfuture.gov.sg/jobalert\")\n  );\n\n  // Trim everything after the first \"?\"\n  const trimmedJobUrls = jobUrls.map(url => {\n    const qIndex = url.indexOf(\"?\");\n    return qIndex === -1 ? url : url.slice(0, qIndex);\n  });\n\n  // De-duplicate after trimming\n  const uniqueJobUrls = Array.from(new Set(trimmedJobUrls));\n\n  const emailId = item.json.id || item.json.messageId || null;\n\n  return {\n    json: {\n      emailId,\n      urls: uniqueJobUrls\n    }\n  };\n});\n"
-      }
+      "position": [
+        1120,
+        96
+      ]
     },
     {
+      "parameters": {
+        "jsCode": "// Extract UUIDs from job URLs and build MCF API URLs per email\n// Each item = one email with its job URLs (batched by emailId)\n// Swagger: GET /v2/jobs?uuids=uuid1&uuids=uuid2\nreturn items\n  .map(item => {\n    const urls = item.json.urls || [];\n\n    const uuids = urls\n      .map(url => {\n        // Match 32 hex chars at the end of the URL path\n        const m = url.match(/[0-9a-fA-F]{32}$/);\n        return m ? m[0] : null;\n      })\n      .filter(Boolean);\n\n    if (uuids.length === 0) return null;\n\n    // Build MCF API URL with repeated uuids params per swagger spec\n    const queryParams = uuids.map(uuid => `uuids=${uuid}`).join('&');\n    const apiUrl = `https://api.mycareersfuture.gov.sg/v2/jobs?${queryParams}`;\n\n    return {\n      json: {\n        emailId: item.json.emailId,\n        uuids,\n        uuidCount: uuids.length,\n        apiUrl\n      }\n    };\n  })\n  .filter(Boolean);\n"
+      },
       "id": "node-batch-uuids",
       "name": "Batch UUIDs & Build URLs",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [896, 192],
-      "parameters": {
-        "jsCode": "// Extract UUIDs from job URLs and build MCF API URLs per email\n// Each item = one email with its job URLs (batched by emailId)\n// Swagger: GET /v2/jobs?uuids=uuid1&uuids=uuid2&limit=100\nreturn items\n  .map(item => {\n    const urls = item.json.urls || [];\n\n    const uuids = urls\n      .map(url => {\n        // Match 32 hex chars at the end of the URL path\n        const m = url.match(/[0-9a-fA-F]{32}$/);\n        return m ? m[0] : null;\n      })\n      .filter(Boolean);\n\n    if (uuids.length === 0) return null;\n\n    // Build MCF API URL with repeated uuids params per swagger spec\n    const queryParams = uuids.map(uuid => `uuids=${uuid}`).join('&');\n    const apiUrl = `https://api.mycareersfuture.gov.sg/v2/jobs?${queryParams}&limit=100`;\n\n    return {\n      json: {\n        emailId: item.json.emailId,\n        uuids,\n        uuidCount: uuids.length,\n        apiUrl\n      }\n    };\n  })\n  .filter(Boolean);\n"
-      }
+      "position": [
+        1344,
+        96
+      ]
     },
     {
+      "parameters": {
+        "options": {}
+      },
       "id": "node-split-batches",
       "name": "Loop Over Batches",
       "type": "n8n-nodes-base.splitInBatches",
       "typeVersion": 3,
-      "position": [1120, 192],
-      "parameters": {
-        "options": {}
-      }
+      "position": [
+        1568,
+        96
+      ]
     },
     {
-      "id": "node-http-request",
-      "name": "Fetch MCF Job Data",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.4,
-      "position": [1344, 240],
       "parameters": {
         "url": "={{ $json.apiUrl }}",
         "sendHeaders": true,
@@ -109,39 +112,49 @@
           "timeout": 30000
         }
       },
+      "id": "node-http-request",
+      "name": "Fetch MCF Job Data",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        1792,
+        144
+      ],
       "onError": "continueRegularOutput"
     },
     {
+      "parameters": {
+        "jsCode": "// Transform raw MCF API responses into flat records for Google Sheets\n// Compliant with swagger_v2_jobs.json schema\n\nconst jobs = [];\n\nfor (const item of $input.all()) {\n  const apiResponse = item.json;\n  const results = apiResponse.results || [apiResponse];\n\n  for (const job of results) {\n    if (!job.uuid && !job.title) continue;\n\n    const record = {\n      uuid: job.uuid || '',\n      jobPostId: (job.metadata && job.metadata.jobPostId) || '',\n      title: job.title || '',\n      sourceCode: job.sourceCode || '',\n      status: (job.status && job.status.jobStatus) || '',\n      postedCompanyName: (job.postedCompany && job.postedCompany.name) || '',\n      hiringCompanyName: (job.hiringCompany && job.hiringCompany.name) || '',\n      postedCompanyUen: (job.postedCompany && job.postedCompany.uen) || '',\n      categories: extractArray(job.categories, 'category'),\n      employmentType: extractArray(job.employmentTypes, 'employmentType'),\n      positionLevel: extractArray(job.positionLevels, 'position'),\n      salaryMinimum: job.salary && job.salary.minimum != null ? job.salary.minimum : '',\n      salaryMaximum: job.salary && job.salary.maximum != null ? job.salary.maximum : '',\n      salaryType: (job.salary && job.salary.type && job.salary.type.salaryType) || '',\n      minimumYearsExperience: job.minimumYearsExperience != null ? job.minimumYearsExperience : '',\n      skills: extractArray(job.skills, 'skill'),\n      description: stripHtml(job.description || ''),\n      otherRequirements: stripHtml(job.otherRequirements || ''),\n      numberOfVacancies: job.numberOfVacancies || '',\n      workingHours: job.workingHours || '',\n      flexibleWorkArrangements: extractArray(job.flexibleWorkArrangements, 'flexibleWorkArrangement'),\n      schemes: extractSchemes(job.schemes),\n      district: extractDistricts(job.address),\n      postalCode: (job.address && job.address.postalCode) || '',\n      street: (job.address && job.address.street) || '',\n      building: (job.address && job.address.building) || '',\n      createdAt: (job.metadata && job.metadata.createdAt) || '',\n      originalPostingDate: (job.metadata && job.metadata.originalPostingDate) || '',\n      newPostingDate: (job.metadata && job.metadata.newPostingDate) || '',\n      totalViews: job.metadata && job.metadata.totalNumberOfView != null ? job.metadata.totalNumberOfView : '',\n      totalApplications: job.metadata && job.metadata.totalNumberJobApplication != null ? job.metadata.totalNumberJobApplication : '',\n      mcfUrl: job.uuid ? `https://www.mycareersfuture.sg/job/${job.uuid}` : '',\n      jobDetailsUrl: (job.metadata && job.metadata.jobDetailsUrl) || '',\n      extractedAt: new Date().toISOString()\n    };\n\n    jobs.push({ json: record });\n  }\n}\n\nfunction stripHtml(html) {\n  if (!html) return '';\n  return html\n    .replace(/<[^>]*>/g, ' ')\n    .replace(/&nbsp;/g, ' ')\n    .replace(/&amp;/g, '&')\n    .replace(/&lt;/g, '<')\n    .replace(/&gt;/g, '>')\n    .replace(/&quot;/g, '\"')\n    .replace(/&#39;/g, \"'\")\n    .replace(/\\s+/g, ' ')\n    .trim()\n    .substring(0, 5000);\n}\n\nfunction extractArray(arr, key) {\n  if (!Array.isArray(arr)) return '';\n  return arr.map(item => item[key] || '').filter(Boolean).join(', ');\n}\n\nfunction extractSchemes(schemes) {\n  if (!Array.isArray(schemes)) return '';\n  return schemes\n    .map(s => {\n      const name = (s.scheme && s.scheme.scheme) || '';\n      const sub = (s.subScheme && s.subScheme.programme) || '';\n      return sub ? `${name} - ${sub}` : name;\n    })\n    .filter(Boolean)\n    .join(', ');\n}\n\nfunction extractDistricts(address) {\n  if (!address || !Array.isArray(address.districts)) return '';\n  return address.districts.map(d => d.location || '').filter(Boolean).join(', ');\n}\n\nif (jobs.length === 0) {\n  return [{\n    json: {\n      warning: 'No job data returned from API',\n      extractedAt: new Date().toISOString()\n    }\n  }];\n}\n\nreturn jobs;"
+      },
       "id": "node-transform",
       "name": "Transform Job Data",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1344, 48],
-      "parameters": {
-        "jsCode": "// Transform raw MCF API responses into flat records for Google Sheets\n// Compliant with swagger_v2_jobs.json schema\n\nconst jobs = [];\n\nfor (const item of $input.all()) {\n  const apiResponse = item.json;\n  const results = apiResponse.results || [apiResponse];\n\n  for (const job of results) {\n    if (!job.uuid && !job.title) continue;\n\n    const record = {\n      uuid: job.uuid || '',\n      jobPostId: (job.metadata && job.metadata.jobPostId) || '',\n      title: job.title || '',\n      sourceCode: job.sourceCode || '',\n      status: (job.status && job.status.jobStatus) || '',\n      postedCompanyName: (job.postedCompany && job.postedCompany.name) || '',\n      hiringCompanyName: (job.hiringCompany && job.hiringCompany.name) || '',\n      postedCompanyUen: (job.postedCompany && job.postedCompany.uen) || '',\n      categories: extractArray(job.categories, 'category'),\n      employmentType: extractArray(job.employmentTypes, 'employmentType'),\n      positionLevel: extractArray(job.positionLevels, 'position'),\n      salaryMinimum: job.salary && job.salary.minimum != null ? job.salary.minimum : '',\n      salaryMaximum: job.salary && job.salary.maximum != null ? job.salary.maximum : '',\n      salaryType: (job.salary && job.salary.type && job.salary.type.salaryType) || '',\n      minimumYearsExperience: job.minimumYearsExperience != null ? job.minimumYearsExperience : '',\n      skills: extractArray(job.skills, 'skill'),\n      description: stripHtml(job.description || ''),\n      otherRequirements: stripHtml(job.otherRequirements || ''),\n      numberOfVacancies: job.numberOfVacancies || '',\n      workingHours: job.workingHours || '',\n      flexibleWorkArrangements: extractArray(job.flexibleWorkArrangements, 'flexibleWorkArrangement'),\n      schemes: extractSchemes(job.schemes),\n      district: extractDistricts(job.address),\n      postalCode: (job.address && job.address.postalCode) || '',\n      street: (job.address && job.address.street) || '',\n      building: (job.address && job.address.building) || '',\n      createdAt: (job.metadata && job.metadata.createdAt) || '',\n      originalPostingDate: (job.metadata && job.metadata.originalPostingDate) || '',\n      newPostingDate: (job.metadata && job.metadata.newPostingDate) || '',\n      totalViews: job.metadata && job.metadata.totalNumberOfView != null ? job.metadata.totalNumberOfView : '',\n      totalApplications: job.metadata && job.metadata.totalNumberJobApplication != null ? job.metadata.totalNumberJobApplication : '',\n      mcfUrl: job.uuid ? `https://www.mycareersfuture.sg/job/${job.uuid}` : '',\n      jobDetailsUrl: (job.metadata && job.metadata.jobDetailsUrl) || '',\n      extractedAt: new Date().toISOString()\n    };\n\n    jobs.push({ json: record });\n  }\n}\n\nfunction stripHtml(html) {\n  if (!html) return '';\n  return html\n    .replace(/<[^>]*>/g, ' ')\n    .replace(/&nbsp;/g, ' ')\n    .replace(/&amp;/g, '&')\n    .replace(/&lt;/g, '<')\n    .replace(/&gt;/g, '>')\n    .replace(/&quot;/g, '\\\"')\n    .replace(/&#39;/g, \"'\")\n    .replace(/\\s+/g, ' ')\n    .trim()\n    .substring(0, 5000);\n}\n\nfunction extractArray(arr, key) {\n  if (!Array.isArray(arr)) return '';\n  return arr.map(item => item[key] || '').filter(Boolean).join(', ');\n}\n\nfunction extractSchemes(schemes) {\n  if (!Array.isArray(schemes)) return '';\n  return schemes\n    .map(s => {\n      const name = (s.scheme && s.scheme.scheme) || '';\n      const sub = (s.subScheme && s.subScheme.programme) || '';\n      return sub ? `${name} - ${sub}` : name;\n    })\n    .filter(Boolean)\n    .join(', ');\n}\n\nfunction extractDistricts(address) {\n  if (!address || !Array.isArray(address.districts)) return '';\n  return address.districts.map(d => d.location || '').filter(Boolean).join(', ');\n}\n\nif (jobs.length === 0) {\n  return [{\n    json: {\n      warning: 'No job data returned from API',\n      extractedAt: new Date().toISOString()\n    }\n  }];\n}\n\nreturn jobs;"
-      }
+      "position": [
+        1792,
+        -48
+      ]
     },
     {
+      "parameters": {
+        "jsCode": "// Deduplicate jobs using two strategies:\n// 1. Primary: Same UUID (exact same posting)\n// 2. Secondary: Same company name + same title (same role re-posted)\n\nconst seen = new Map();\nconst companyTitleSet = new Set();\nconst duplicates = [];\nconst kept = [];\n\nfor (const item of $input.all()) {\n  const job = item.json;\n\n  if (job.warning || !job.uuid) {\n    continue;\n  }\n\n  const uuid = job.uuid;\n  const companyTitleKey = `${(job.postedCompanyName || '').toLowerCase().trim()}|||${(job.title || '').toLowerCase().trim()}`;\n\n  // Primary dedup: exact UUID match\n  if (seen.has(uuid)) {\n    duplicates.push({ uuid, title: job.title, reason: 'duplicate_uuid' });\n    continue;\n  }\n\n  // Secondary dedup: same company + same title\n  if (companyTitleSet.has(companyTitleKey)) {\n    duplicates.push({ uuid, title: job.title, company: job.postedCompanyName, reason: 'duplicate_company_title' });\n    continue;\n  }\n\n  seen.set(uuid, true);\n  companyTitleSet.add(companyTitleKey);\n  kept.push(item);\n}\n\nconsole.log(`Deduplication: ${kept.length} kept, ${duplicates.length} removed`);\nconsole.log(`Duplicates by UUID: ${duplicates.filter(d => d.reason === 'duplicate_uuid').length}`);\nconsole.log(`Duplicates by Company+Title: ${duplicates.filter(d => d.reason === 'duplicate_company_title').length}`);\n\nif (kept.length === 0) {\n  return [{\n    json: {\n      warning: 'All jobs were duplicates or no valid jobs found',\n      totalDuplicates: duplicates.length,\n      extractedAt: new Date().toISOString()\n    }\n  }];\n}\n\nreturn kept;"
+      },
       "id": "node-dedup",
       "name": "Deduplicate Jobs",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1568, 48],
-      "parameters": {
-        "jsCode": "// Deduplicate jobs using two strategies:\n// 1. Primary: Same UUID (exact same posting)\n// 2. Secondary: Same company name + same title (same role re-posted)\n\nconst seen = new Map();\nconst companyTitleSet = new Set();\nconst duplicates = [];\nconst kept = [];\n\nfor (const item of $input.all()) {\n  const job = item.json;\n\n  if (job.warning || !job.uuid) {\n    continue;\n  }\n\n  const uuid = job.uuid;\n  const companyTitleKey = `${(job.postedCompanyName || '').toLowerCase().trim()}|||${(job.title || '').toLowerCase().trim()}`;\n\n  // Primary dedup: exact UUID match\n  if (seen.has(uuid)) {\n    duplicates.push({ uuid, title: job.title, reason: 'duplicate_uuid' });\n    continue;\n  }\n\n  // Secondary dedup: same company + same title\n  if (companyTitleSet.has(companyTitleKey)) {\n    duplicates.push({ uuid, title: job.title, company: job.postedCompanyName, reason: 'duplicate_company_title' });\n    continue;\n  }\n\n  seen.set(uuid, true);\n  companyTitleSet.add(companyTitleKey);\n  kept.push(item);\n}\n\nconsole.log(`Deduplication: ${kept.length} kept, ${duplicates.length} removed`);\nconsole.log(`Duplicates by UUID: ${duplicates.filter(d => d.reason === 'duplicate_uuid').length}`);\nconsole.log(`Duplicates by Company+Title: ${duplicates.filter(d => d.reason === 'duplicate_company_title').length}`);\n\nif (kept.length === 0) {\n  return [{\n    json: {\n      warning: 'All jobs were duplicates or no valid jobs found',\n      totalDuplicates: duplicates.length,\n      extractedAt: new Date().toISOString()\n    }\n  }];\n}\n\nreturn kept;"
-      }
+      "position": [
+        2016,
+        -48
+      ]
     },
     {
-      "id": "node-sheets",
-      "name": "Append to Google Sheets",
-      "type": "n8n-nodes-base.googleSheets",
-      "typeVersion": 4.7,
-      "position": [1792, 48],
       "parameters": {
         "operation": "append",
         "documentId": {
-          "mode": "id",
-          "value": "={{ $('Create MCF Job Data Sheet').first().json.spreadsheetId }}"
+          "__rl": true,
+          "value": "={{ \n  $(\"Search files and folders\").first().json.id ?? $(\"Create MCF Job Data Sheet\").item.json.spreadsheetId \n}}",
+          "mode": "id"
         },
         "sheetName": {
           "mode": "name",
@@ -151,7 +164,348 @@
           "mappingMode": "autoMapInputData",
           "value": {},
           "matchingColumns": [],
-          "schema": [],
+          "schema": [
+            {
+              "id": "uuid",
+              "displayName": "uuid",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "jobPostId",
+              "displayName": "jobPostId",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "title",
+              "displayName": "title",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "sourceCode",
+              "displayName": "sourceCode",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "status",
+              "displayName": "status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "postedCompanyName",
+              "displayName": "postedCompanyName",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "hiringCompanyName",
+              "displayName": "hiringCompanyName",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "postedCompanyUen",
+              "displayName": "postedCompanyUen",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "categories",
+              "displayName": "categories",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "employmentType",
+              "displayName": "employmentType",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "positionLevel",
+              "displayName": "positionLevel",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "salaryMinimum",
+              "displayName": "salaryMinimum",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "salaryMaximum",
+              "displayName": "salaryMaximum",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "salaryType",
+              "displayName": "salaryType",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "minimumYearsExperience",
+              "displayName": "minimumYearsExperience",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "skills",
+              "displayName": "skills",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "description",
+              "displayName": "description",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "otherRequirements",
+              "displayName": "otherRequirements",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "numberOfVacancies",
+              "displayName": "numberOfVacancies",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "workingHours",
+              "displayName": "workingHours",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "flexibleWorkArrangements",
+              "displayName": "flexibleWorkArrangements",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "schemes",
+              "displayName": "schemes",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "district",
+              "displayName": "district",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "postalCode",
+              "displayName": "postalCode",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "street",
+              "displayName": "street",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "building",
+              "displayName": "building",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "createdAt",
+              "displayName": "createdAt",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "originalPostingDate",
+              "displayName": "originalPostingDate",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "newPostingDate",
+              "displayName": "newPostingDate",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "totalViews",
+              "displayName": "totalViews",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "totalApplications",
+              "displayName": "totalApplications",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "mcfUrl",
+              "displayName": "mcfUrl",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "jobDetailsUrl",
+              "displayName": "jobDetailsUrl",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "extractedAt",
+              "displayName": "extractedAt",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
           "attemptToConvertTypes": false,
           "convertFieldsToString": true
         },
@@ -159,90 +513,395 @@
           "handlingExtraData": "insertInNewColumn"
         }
       },
-      "credentials": {
-        "googleSheetsOAuth2Api": {
-          "id": "uBda0hDvnDBh6LU0",
-          "name": "Google Sheets OAuth"
-        }
-      }
+      "id": "node-sheets",
+      "name": "Append to Google Sheets",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        2240,
+        -48
+      ]
     },
     {
+      "parameters": {
+        "content": "## MCF Job Alert Extraction Workflow\n\n**Purpose:** Extract job posting data from MyCareersFuture email alerts and store in Google Sheets for analysis.\n\n**Trigger:** Manual\n**Source:** Gmail (job-alerts@mycareersfuture.gov.sg)\n**Output:** Google Sheets (\"MCF Job Data\" spreadsheet)\n\n**Flow:**\n1. Create Google Sheet (disable after first run to reuse)\n2. Fetch emails from Gmail\n3. Extract job UUIDs from email links\n4. Batch API requests by email ID\n5. Fetch job details from MCF API\n6. Transform, deduplicate, and save to Sheets\n\n**Pre-requisites:**\n- Gmail OAuth2 credentials configured\n- Google Sheets OAuth2 credentials configured",
+        "height": 512,
+        "width": 400
+      },
       "id": "node-sticky-overview",
       "name": "Sticky Note - Overview",
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
-      "position": [-64, 80],
-      "parameters": {
-        "content": "## MCF Job Alert Extraction Workflow\n\n**Purpose:** Extract job posting data from MyCareersFuture email alerts and store in Google Sheets for analysis.\n\n**Trigger:** Manual\n**Source:** Gmail (job-alerts@mycareersfuture.gov.sg)\n**Output:** Google Sheets (\"MCF Job Data\" spreadsheet)\n\n**Flow:**\n1. Create Google Sheet (disable after first run to reuse)\n2. Fetch emails from Gmail\n3. Extract job UUIDs from email links\n4. Batch API requests by email ID\n5. Fetch job details from MCF API\n6. Transform, deduplicate, and save to Sheets\n\n**Pre-requisites:**\n- Gmail OAuth2 credentials configured\n- Google Sheets OAuth2 credentials configured"
-      }
+      "position": [
+        -448,
+        -32
+      ]
     },
     {
+      "parameters": {
+        "content": "## MCF Jobs API (Swagger v2)\n\n**Endpoint:** GET https://api.mycareersfuture.gov.sg/v2/jobs\n**Auth:** None required (public API)\n**Query Params:**\n- `uuids` (array, repeated): Job UUIDs to fetch\n- `limit` (int, 1-100, default 20): Max results\n- `page` (int, default 0): Page number\n**Response:** `{ results: Job[], total: int }`\n**Array format:** Repeated params (`uuids=x&uuids=y`)\n\nURL is built per email batch in the Code node upstream.",
+        "height": 240,
+        "width": 432
+      },
       "id": "node-sticky-api",
       "name": "Sticky Note - API",
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
-      "position": [1264, 464],
-      "parameters": {
-        "content": "## MCF Jobs API (Swagger v2)\n\n**Endpoint:** GET https://api.mycareersfuture.gov.sg/v2/jobs\n**Auth:** None required (public API)\n**Query Params:**\n- `uuids` (array, repeated): Job UUIDs to fetch\n- `limit` (int, 1-100, default 20): Max results\n- `page` (int, default 0): Page number\n**Response:** `{ results: Job[], total: int }`\n**Array format:** Repeated params (`uuids=x&uuids=y`)\n\nURL is built per email batch in the Code node upstream."
-      }
+      "position": [
+        1584,
+        400
+      ]
     },
     {
+      "parameters": {
+        "content": "## Deduplication Strategy\n\n1. **Primary:** Same UUID = exact same posting\n2. **Secondary:** Same company + same title = re-posted role\n\nKeeps first occurrence, discards later duplicates.",
+        "height": 176,
+        "width": 416
+      },
       "id": "node-sticky-dedup",
       "name": "Sticky Note - Dedup",
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
-      "position": [1376, -128],
-      "parameters": {
-        "content": "## Deduplication Strategy\n\n1. **Primary:** Same UUID = exact same posting\n2. **Secondary:** Same company + same title = re-posted role\n\nKeeps first occurrence, discards later duplicates."
-      }
+      "position": [
+        1264,
+        -128
+      ]
     },
     {
+      "parameters": {
+        "content": "## Google Sheet Creation\n\nCreates a new \"MCF Job Data\" spreadsheet with a \"MCF Jobs\" sheet tab on each run.\n\n**After first run:** Disable this node and update the Append node's Document ID to the existing spreadsheet ID/URL to reuse the same sheet.",
+        "height": 208,
+        "width": 736
+      },
       "id": "node-sticky-sheets",
       "name": "Sticky Note - Sheets",
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
-      "position": [144, 360],
+      "position": [
+        176,
+        -16
+      ]
+    },
+    {
       "parameters": {
-        "content": "## Google Sheet Creation\n\nCreates a new \"MCF Job Data\" spreadsheet with a \"MCF Jobs\" sheet tab on each run.\n\n**After first run:** Disable this node and update the Append node's Document ID to the existing spreadsheet ID/URL to reuse the same sheet."
-      }
+        "resource": "fileFolder",
+        "queryString": "MCF Job Data",
+        "filter": {
+          "whatToSearch": "files",
+          "includeTrashed": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        224,
+        208
+      ],
+      "id": "a51e3b13-095b-49e6-a110-7f43ae2463cd",
+      "name": "Search files and folders",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "b063af38-cc8e-4445-90bc-88aaed3ac834",
+              "leftValue": "={{ $json.id }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "exists",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        448,
+        208
+      ],
+      "id": "23009654-ccf8-41e2-bdf3-0783d9c913b8",
+      "name": "If Data Sheet Exists"
+    },
+    {
+      "parameters": {
+        "operation": "addLabels",
+        "messageId": "={{ $json.id }}",
+        "labelIds": [
+          "Label_5161189671814561547"
+        ]
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        2688,
+        112
+      ],
+      "id": "a8378843-e218-4b11-8fdf-efed6fa5793b",
+      "name": "Add label to message",
+      "webhookId": "970f53af-8033-41c9-9d64-645ec65387b3"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "500ecd0f-f783-4159-8f23-6f6799f14ca1",
+              "name": "id",
+              "value": "={{ $json.id }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        2240,
+        304
+      ],
+      "id": "4bf20289-615c-45ce-88b1-98b3140292ea",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "mode": "chooseBranch",
+        "useDataOfInput": 2
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        2464,
+        112
+      ],
+      "id": "882ab7eb-85df-47da-8b58-7645c90e051c",
+      "name": "Merge"
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "triggerAtHour": 6
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        0,
+        288
+      ],
+      "id": "4d14a839-bb65-4194-a7b0-ff0b4307541c",
+      "name": "Schedule Trigger"
     }
   ],
   "connections": {
     "When clicking 'Test workflow'": {
-      "main": [[{"node": "Create MCF Job Data Sheet", "type": "main", "index": 0}]]
+      "main": [
+        [
+          {
+            "node": "Search files and folders",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Create MCF Job Data Sheet": {
-      "main": [[{"node": "Get MCF Alert Emails", "type": "main", "index": 0}]]
+      "main": [
+        [
+          {
+            "node": "Get MCF Alert Emails",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Get MCF Alert Emails": {
-      "main": [[{"node": "Extract Job UUIDs", "type": "main", "index": 0}]]
+      "main": [
+        [
+          {
+            "node": "Extract Job UUIDs",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Extract Job UUIDs": {
-      "main": [[{"node": "Batch UUIDs & Build URLs", "type": "main", "index": 0}]]
+      "main": [
+        [
+          {
+            "node": "Batch UUIDs & Build URLs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Batch UUIDs & Build URLs": {
-      "main": [[{"node": "Loop Over Batches", "type": "main", "index": 0}]]
+      "main": [
+        [
+          {
+            "node": "Loop Over Batches",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Loop Over Batches": {
       "main": [
-        [{"node": "Transform Job Data", "type": "main", "index": 0}],
-        [{"node": "Fetch MCF Job Data", "type": "main", "index": 0}]
+        [
+          {
+            "node": "Transform Job Data",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Fetch MCF Job Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     },
     "Fetch MCF Job Data": {
-      "main": [[{"node": "Loop Over Batches", "type": "main", "index": 0}]]
+      "main": [
+        [
+          {
+            "node": "Loop Over Batches",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Transform Job Data": {
-      "main": [[{"node": "Deduplicate Jobs", "type": "main", "index": 0}]]
+      "main": [
+        [
+          {
+            "node": "Deduplicate Jobs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Deduplicate Jobs": {
-      "main": [[{"node": "Append to Google Sheets", "type": "main", "index": 0}]]
+      "main": [
+        [
+          {
+            "node": "Append to Google Sheets",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Search files and folders": {
+      "main": [
+        [
+          {
+            "node": "If Data Sheet Exists",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If Data Sheet Exists": {
+      "main": [
+        [
+          {
+            "node": "Get MCF Alert Emails",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Create MCF Job Data Sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Append to Google Sheets": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Merge": {
+      "main": [
+        [
+          {
+            "node": "Add label to message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Search files and folders",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     }
   },
   "settings": {
     "executionOrder": "v1",
     "callerPolicy": "workflowsFromSameOwner",
-    "availableInMCP": false
+    "availableInMCP": true,
+    "binaryMode": "separate"
   },
-  "versionId": "81d79c6f-57c6-42ca-89e9-d26d2e572740"
+  "versionId": "49e3c09e-d28d-4dee-94bd-f92ad74892c7"
 }
